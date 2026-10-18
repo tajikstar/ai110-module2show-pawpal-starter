@@ -1,7 +1,11 @@
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from datetime import date, timedelta
 from itertools import combinations
-from typing import List, Tuple
+from typing import List, Optional, Tuple
+
+# How far ahead a recurring task's next occurrence is scheduled.
+RECURRENCE_DAYS = {"daily": 1, "weekly": 7}
 
 
 @dataclass
@@ -9,12 +13,17 @@ class Task:
     description: str
     due_time: str  # "HH:MM", 24-hour, so string order matches time order
     is_complete: bool = False
-    frequency: str = "once"
+    frequency: str = "once"  # "once", "daily" or "weekly"
     pet_name: str = ""  # set by Pet so a task knows which pet it belongs to
+    due_date: date = field(default_factory=date.today)
 
-    def mark_complete(self) -> None:
-        """Mark this task as complete."""
+    def mark_complete(self) -> Optional["Task"]:
+        """Mark this task complete and return its next occurrence if it recurs, else None."""
         self.is_complete = True
+        days = RECURRENCE_DAYS.get(self.frequency)
+        if days is None:
+            return None
+        return replace(self, is_complete=False, due_date=self.due_date + timedelta(days=days))
 
     def update_time(self, new_time: str) -> None:
         """Change the task's due time."""
@@ -61,23 +70,57 @@ class Scheduler:
         """Create a scheduler that reads tasks from the given owner."""
         self.owner = owner
 
-    def sort_by_time(self) -> List[Task]:
-        """Return all tasks across all pets sorted by due time."""
-        return sorted(self.owner.get_all_tasks(), key=lambda t: t.due_time)
+    def sort_by_time(self, tasks: Optional[List[Task]] = None) -> List[Task]:
+        """Return tasks (default: all pets') ordered by date, then "HH:MM" time."""
+        if tasks is None:
+            tasks = self.owner.get_all_tasks()
+        return sorted(tasks, key=lambda t: (t.due_date, t.due_time))
+
+    def filter_tasks(
+        self, pet_name: Optional[str] = None, is_complete: Optional[bool] = None
+    ) -> List[Task]:
+        """Return tasks matching the given pet name (case-insensitive) and/or completion status.
+
+        A filter left as None is ignored, so no arguments returns every task.
+        """
+        tasks = self.owner.get_all_tasks()
+        if pet_name is not None:
+            tasks = [t for t in tasks if t.pet_name.lower() == pet_name.lower()]
+        if is_complete is not None:
+            tasks = [t for t in tasks if t.is_complete == is_complete]
+        return tasks
 
     def filter_by_pet(self, pet_name: str) -> List[Task]:
         """Return tasks belonging to the named pet (case-insensitive)."""
-        wanted = pet_name.lower()
-        return [t for t in self.owner.get_all_tasks() if t.pet_name.lower() == wanted]
+        return self.filter_tasks(pet_name=pet_name)
 
     def check_conflicts(self) -> List[Tuple[Task, Task]]:
-        """Return pairs of incomplete tasks scheduled at the same time, across all pets."""
-        by_time = defaultdict(list)
+        """Return pairs of incomplete tasks sharing the same date and time, across all pets."""
+        by_slot = defaultdict(list)
         for task in self.owner.get_all_tasks():
             if not task.is_complete:
-                by_time[task.due_time].append(task)
-        return [
-            pair
-            for tasks in by_time.values()
-            for pair in combinations(tasks, 2)
-        ]
+                by_slot[(task.due_date, task.due_time)].append(task)
+        return [pair for tasks in by_slot.values() for pair in combinations(tasks, 2)]
+
+    def get_conflict_warnings(self) -> List[str]:
+        """Return a human-readable warning for each conflict; an empty list means none."""
+        warnings = []
+        for a, b in self.check_conflicts():
+            who = "for" if a.pet_name == b.pet_name else "between"
+            names = a.pet_name if a.pet_name == b.pet_name else f"{a.pet_name} and {b.pet_name}"
+            warnings.append(
+                f"Conflict on {a.due_date} at {a.due_time} {who} {names}: "
+                f"'{a.description}' and '{b.description}'"
+            )
+        return warnings
+
+    def mark_task_complete(self, task: Task) -> Optional[Task]:
+        """Complete a task and, if it recurs, add its next occurrence to the same pet.
+
+        Returns the new task, or None if the task does not recur.
+        """
+        next_task = task.mark_complete()
+        if next_task is not None:
+            pet = next(p for p in self.owner.pets if task in p.tasks)
+            pet.add_task(next_task)
+        return next_task

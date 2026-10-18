@@ -29,13 +29,13 @@ I did not act on these yet: tasks have no duration, so only exact same-time clas
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+The scheduler considers a task's date and time, its completion status, which pet it belongs to, and how often it repeats. Time matters most, because a pet owner's day is organized around when things happen, so sorting and conflict detection are built on it. I left out priority and duration to keep the first version small.
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+The conflict check only compares exact date and time matches, not overlapping durations. A 30-minute walk at 08:00 and a feeding at 08:15 would not be flagged. This is reasonable for now because tasks have no duration field, and exact matching is one pass over the tasks (grouping them in a dictionary), easy to read and easy to test. It still catches the most obvious double-booking, and it returns warnings instead of raising errors, so the app keeps running. Overlap detection would need a `duration_minutes` field and an interval comparison.
+
+I also reviewed `check_conflicts()` for readability. I kept the explicit loop that builds a dictionary of slots and then pairs up the tasks in each slot, because it is easier to follow than a single dense comprehension. I only simplified the final pairing step with `itertools.combinations`.
 
 ---
 

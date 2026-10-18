@@ -55,20 +55,58 @@ pip install -r requirements.txt
 
 ## 🖥️ Sample Output
 
-Output of `python main.py`, which builds an owner with two pets and prints a combined schedule:
+Output of `python main.py`, which adds tasks out of order, then sorts, filters, flags conflicts and completes recurring tasks:
 
 ```
-==============================================
-Today's Schedule for Jordan
-==============================================
-Time   Pet       Task                  Status
-----------------------------------------------
-08:00  Mochi     Morning walk          done
-08:00  Luna      Breakfast             pending
-12:15  Luna      Medication            pending
-18:30  Mochi     Evening walk          pending
-----------------------------------------------
-No conflicts.
+All tasks as added (unsorted)
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  18:30  Mochi    Evening walk        daily   pending
+2026-10-18  08:00  Mochi    Morning walk        daily   pending
+2026-10-18  12:15  Luna     Medication          weekly  pending
+2026-10-18  08:00  Luna     Breakfast           once    pending
+2026-10-18  08:00  Luna     Grooming            once    pending
+
+Sorted by time
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  08:00  Mochi    Morning walk        daily   pending
+2026-10-18  08:00  Luna     Breakfast           once    pending
+2026-10-18  08:00  Luna     Grooming            once    pending
+2026-10-18  12:15  Luna     Medication          weekly  pending
+2026-10-18  18:30  Mochi    Evening walk        daily   pending
+
+Filter: Luna only
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  12:15  Luna     Medication          weekly  pending
+2026-10-18  08:00  Luna     Breakfast           once    pending
+2026-10-18  08:00  Luna     Grooming            once    pending
+
+Conflict warnings
+----------------------------------------------------------
+Conflict on 2026-10-18 at 08:00 between Mochi and Luna: 'Morning walk' and 'Breakfast'
+Conflict on 2026-10-18 at 08:00 between Mochi and Luna: 'Morning walk' and 'Grooming'
+Conflict on 2026-10-18 at 08:00 for Luna: 'Breakfast' and 'Grooming'
+
+Completing Mochi's daily morning walk and Luna's weekly medication...
+  Morning walk: next occurrence on 2026-10-19
+  Medication: next occurrence on 2026-10-25
+
+Filter: pending only
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  08:00  Luna     Breakfast           once    pending
+2026-10-18  08:00  Luna     Grooming            once    pending
+2026-10-18  18:30  Mochi    Evening walk        daily   pending
+2026-10-19  08:00  Mochi    Morning walk        daily   pending
+2026-10-25  12:15  Luna     Medication          weekly  pending
+
+Filter: completed only
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  08:00  Mochi    Morning walk        daily   done
+2026-10-18  12:15  Luna     Medication          weekly  done
 ```
 
 ## 🧪 Testing PawPal+
@@ -89,14 +127,14 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Sorting | `Scheduler.sort_by_time()` | Sorts all pets' tasks with `sorted()` and a lambda key of `(due_date, due_time)`. `"HH:MM"` strings sort correctly as text. Accepts an optional task list so it can sort filtered results. |
+| Filtering | `Scheduler.filter_tasks(pet_name, is_complete)`, `Scheduler.filter_by_pet()` | Filter by pet name (case-insensitive), completion status, or both. Passing `None` ignores that filter. |
+| Conflict detection | `Scheduler.check_conflicts()`, `Scheduler.get_conflict_warnings()` | Groups incomplete tasks by exact `(date, time)` in one pass and pairs up tasks sharing a slot, whether for the same pet or different pets. Returns warning strings instead of raising, so the program keeps running. |
+| Recurring tasks | `Task.mark_complete()`, `Scheduler.mark_task_complete()` | Completing a `daily` or `weekly` task returns a copy dated `due_date + timedelta(days=1 or 7)`. The Scheduler adds that copy to the same pet. `once` tasks do not recur. |
+
+**Tradeoff:** conflicts only match tasks at the exact same date and time. Tasks have no duration, so overlapping windows (such as a 30-minute walk at 08:00 and a feeding at 08:15) are not detected.
 
 ## 📸 Demo Walkthrough
 
