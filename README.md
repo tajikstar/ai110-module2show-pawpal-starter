@@ -122,7 +122,20 @@ pytest --cov
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+collecting ... collected 8 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 12%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 25%]
+tests/test_pawpal.py::test_sort_by_time_orders_tasks_across_pets PASSED  [ 37%]
+tests/test_pawpal.py::test_filter_tasks_by_pet_and_status PASSED         [ 50%]
+tests/test_pawpal.py::test_completing_daily_task_creates_next_day_occurrence PASSED [ 62%]
+tests/test_pawpal.py::test_completing_weekly_task_adds_seven_days_and_once_task_does_not_recur PASSED [ 75%]
+tests/test_pawpal.py::test_conflict_detection_warns_for_same_slot_only PASSED [ 87%]
+tests/test_pawpal.py::test_conflict_ignores_other_dates_and_completed_tasks PASSED [100%]
+
+============================== 8 passed in 0.04s ==============================
 ```
 
 ## 📐 Smarter Scheduling
