@@ -117,10 +117,15 @@ class Scheduler:
     def mark_task_complete(self, task: Task) -> Optional[Task]:
         """Complete a task and, if it recurs, add its next occurrence to the same pet.
 
-        Returns the new task, or None if the task does not recur.
+        Returns the new task, or None if the task does not recur or was already complete.
+        Raises ValueError if the task does not belong to any of the owner's pets.
         """
+        pet = next((p for p in self.owner.pets if task in p.tasks), None)
+        if pet is None:
+            raise ValueError(f"Task '{task.description}' does not belong to any pet.")
+        if task.is_complete:
+            return None  # already done; avoid creating a duplicate next occurrence
         next_task = task.mark_complete()
         if next_task is not None:
-            pet = next(p for p in self.owner.pets if task in p.tasks)
             pet.add_task(next_task)
         return next_task

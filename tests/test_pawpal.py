@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from pawpal_system import Owner, Pet, Scheduler, Task
 
 
@@ -100,3 +102,84 @@ def test_conflict_ignores_other_dates_and_completed_tasks():
     done.mark_complete()
 
     assert scheduler.get_conflict_warnings() == []
+
+
+# ---- Edge cases ----
+
+def test_pet_and_owner_with_no_tasks():
+    owner, mochi, _, scheduler = _scheduler()
+
+    assert mochi.get_pending_tasks() == []
+    assert owner.get_all_tasks() == []
+    assert scheduler.sort_by_time() == []
+    assert scheduler.filter_by_pet("Mochi") == []
+    assert scheduler.get_conflict_warnings() == []
+
+
+def test_owner_with_no_pets_does_not_crash():
+    scheduler = Scheduler(Owner("Nobody"))
+
+    assert scheduler.sort_by_time() == []
+    assert scheduler.check_conflicts() == []
+
+
+def test_sort_by_time_orders_by_date_before_time():
+    _, mochi, _, scheduler = _scheduler()
+    tomorrow_early = Task("Tomorrow early", "06:00", due_date=date(2026, 1, 2))
+    today_late = Task("Today late", "23:00", due_date=date(2026, 1, 1))
+    mochi.add_task(tomorrow_early)
+    mochi.add_task(today_late)
+
+    assert scheduler.sort_by_time() == [today_late, tomorrow_early]
+
+
+def test_sort_keeps_insertion_order_for_identical_times():
+    _, mochi, luna, scheduler = _scheduler()
+    first, second = Task("First", "08:00"), Task("Second", "08:00")
+    mochi.add_task(first)
+    luna.add_task(second)
+
+    assert scheduler.sort_by_time() == [first, second]
+
+
+def test_three_tasks_at_same_time_give_three_conflict_pairs():
+    _, mochi, luna, scheduler = _scheduler()
+    for pet, name in [(mochi, "A"), (mochi, "B"), (luna, "C")]:
+        pet.add_task(Task(name, "08:00"))
+
+    assert len(scheduler.check_conflicts()) == 3
+
+
+def test_same_pet_conflict_message_names_the_pet_once():
+    _, mochi, _, scheduler = _scheduler()
+    mochi.add_task(Task("Walk", "08:00"))
+    mochi.add_task(Task("Bath", "08:00"))
+
+    assert "for Mochi" in scheduler.get_conflict_warnings()[0]
+
+
+def test_completing_a_task_twice_does_not_duplicate_next_occurrence():
+    _, mochi, _, scheduler = _scheduler()
+    walk = Task("Walk", "08:00", frequency="daily")
+    mochi.add_task(walk)
+
+    scheduler.mark_task_complete(walk)
+    assert scheduler.mark_task_complete(walk) is None
+    assert len(mochi.tasks) == 2
+
+
+def test_completing_task_that_belongs_to_no_pet_raises_and_changes_nothing():
+    _, _, _, scheduler = _scheduler()
+    stray = Task("Stray", "08:00", frequency="daily")
+
+    with pytest.raises(ValueError):
+        scheduler.mark_task_complete(stray)
+    assert stray.is_complete is False
+
+
+def test_recurring_task_rolls_over_year_end():
+    _, mochi, _, scheduler = _scheduler()
+    walk = Task("Walk", "08:00", frequency="daily", due_date=date(2026, 12, 31))
+    mochi.add_task(walk)
+
+    assert scheduler.mark_task_complete(walk).due_date == date(2027, 1, 1)

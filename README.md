@@ -112,31 +112,47 @@ Date        Time   Pet      Task                Repeats Status
 ## 🧪 Testing PawPal+
 
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python -m pytest
 ```
 
-Sample test output:
+The 17 tests in `tests/test_pawpal.py` cover:
+
+- **Basics:** `Task.mark_complete()` changes status, and `Pet.add_task()` increases the task count.
+- **Sorting:** tasks from several pets come back in chronological order, date sorts before time, and tasks with identical times keep their insertion order.
+- **Filtering:** by pet name (case-insensitive), by completion status, and by both.
+- **Recurrence:** completing a daily task creates one for the next day and a weekly task one for seven days later. Month and year rollovers are handled. "once" tasks don't recur. Completing the same task twice doesn't create a duplicate.
+- **Conflict detection:** same-time tasks are flagged for one pet or across pets, three tasks at one time give three pairs, and tasks on different dates or already completed are ignored.
+- **Edge cases:** an owner with no pets, a pet with no tasks, and completing a task that belongs to no pet (raises `ValueError` and changes nothing).
+
+Test output:
 
 ```
 ============================= test session starts =============================
 platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
-collecting ... collected 8 items
+collecting ... collected 17 items
 
-tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 12%]
-tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 25%]
-tests/test_pawpal.py::test_sort_by_time_orders_tasks_across_pets PASSED  [ 37%]
-tests/test_pawpal.py::test_filter_tasks_by_pet_and_status PASSED         [ 50%]
-tests/test_pawpal.py::test_completing_daily_task_creates_next_day_occurrence PASSED [ 62%]
-tests/test_pawpal.py::test_completing_weekly_task_adds_seven_days_and_once_task_does_not_recur PASSED [ 75%]
-tests/test_pawpal.py::test_conflict_detection_warns_for_same_slot_only PASSED [ 87%]
-tests/test_pawpal.py::test_conflict_ignores_other_dates_and_completed_tasks PASSED [100%]
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [  5%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 11%]
+tests/test_pawpal.py::test_sort_by_time_orders_tasks_across_pets PASSED  [ 17%]
+tests/test_pawpal.py::test_filter_tasks_by_pet_and_status PASSED         [ 23%]
+tests/test_pawpal.py::test_completing_daily_task_creates_next_day_occurrence PASSED [ 29%]
+tests/test_pawpal.py::test_completing_weekly_task_adds_seven_days_and_once_task_does_not_recur PASSED [ 35%]
+tests/test_pawpal.py::test_conflict_detection_warns_for_same_slot_only PASSED [ 41%]
+tests/test_pawpal.py::test_conflict_ignores_other_dates_and_completed_tasks PASSED [ 47%]
+tests/test_pawpal.py::test_pet_and_owner_with_no_tasks PASSED            [ 52%]
+tests/test_pawpal.py::test_owner_with_no_pets_does_not_crash PASSED      [ 58%]
+tests/test_pawpal.py::test_sort_by_time_orders_by_date_before_time PASSED [ 64%]
+tests/test_pawpal.py::test_sort_keeps_insertion_order_for_identical_times PASSED [ 70%]
+tests/test_pawpal.py::test_three_tasks_at_same_time_give_three_conflict_pairs PASSED [ 76%]
+tests/test_pawpal.py::test_same_pet_conflict_message_names_the_pet_once PASSED [ 82%]
+tests/test_pawpal.py::test_completing_a_task_twice_does_not_duplicate_next_occurrence PASSED [ 88%]
+tests/test_pawpal.py::test_completing_task_that_belongs_to_no_pet_raises_and_changes_nothing PASSED [ 94%]
+tests/test_pawpal.py::test_recurring_task_rolls_over_year_end PASSED     [100%]
 
-============================== 8 passed in 0.04s ==============================
+============================= 17 passed in 0.06s ==============================
 ```
+
+**Confidence level: ⭐⭐⭐⭐ (4 / 5).** All 17 tests pass and cover the core behaviors and the edge cases I could think of. I'm not giving 5 because the Streamlit UI was only checked by hand, tasks have no duration so overlapping (not identical) times aren't flagged, and `due_time` is not validated, so a malformed time like `"8am"` would sort wrongly.
 
 ## 📐 Smarter Scheduling
 
