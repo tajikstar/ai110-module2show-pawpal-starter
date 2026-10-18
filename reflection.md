@@ -4,13 +4,24 @@
 
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+My initial UML has four classes:
+
+- **Task** (dataclass): one care activity, with a description, due time, completion flag and frequency. It knows how to mark itself complete and change its time.
+- **Pet** (dataclass): a pet's name and species plus its list of tasks. It adds tasks and reports which ones are still pending.
+- **Owner** (dataclass): the owner's name and list of pets. It adds pets and gathers every task across all pets.
+- **Scheduler**: holds an Owner and does the "thinking": sorting tasks by time, filtering by pet name, and detecting conflicts. I kept this logic out of the data classes so they stay simple.
+
+Relationships: an Owner has many Pets, a Pet has many Tasks, and the Scheduler manages one Owner.
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+I asked my AI assistant to review the skeleton for missing relationships and bottlenecks. It raised these points:
+
+- **Tasks didn't know their pet.** `Owner.get_all_tasks()` flattens tasks, so `Scheduler.filter_by_pet()` and conflict reports couldn't tell which pet a task belonged to. *Change:* I added a `pet_name` field to `Task`, which `Pet.add_task()` will fill in.
+- **Time format.** `due_time` is a string, so sorting only works if it's always "HH:MM". I documented that format in `sort_by_time`. I'm keeping strings for now and may switch to `datetime.time` later.
+- **Conflict checking could be O(n^2).** I noted in the docstring that `check_conflicts` should group tasks by `due_time` instead of comparing every pair.
+
+I did not act on these yet: tasks have no duration, so only exact same-time clashes will count as conflicts, and `frequency` is just a string with no logic for creating the next occurrence of a recurring task. Both are worth revisiting during implementation.
 
 ---
 
