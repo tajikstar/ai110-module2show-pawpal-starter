@@ -28,6 +28,7 @@ class Pet:
     tasks: List[Task] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        """Stamp any tasks passed to the constructor with this pet's name."""
         for task in self.tasks:
             task.pet_name = self.name
 
@@ -57,6 +58,7 @@ class Owner:
 
 class Scheduler:
     def __init__(self, owner: Owner) -> None:
+        """Create a scheduler that reads tasks from the given owner."""
         self.owner = owner
 
     def sort_by_time(self) -> List[Task]:

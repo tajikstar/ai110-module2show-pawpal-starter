@@ -43,13 +43,14 @@ I did not act on these yet: tasks have no duration, so only exact same-time clas
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+I used an AI coding assistant to turn my UML into dataclass skeletons, review the skeleton for gaps, implement the four classes, write the `main.py` demo and draft the first tests. The most helpful prompts were specific ones, such as asking whether the skeleton had missing relationships or bottlenecks, and requiring that the Scheduler read from the Owner instead of a single pet.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+- **Accepted:** adding a `pet_name` field to `Task` after the review pointed out that a flattened task list loses track of which pet owns each task. I also accepted grouping tasks by time in `check_conflicts` instead of comparing every pair.
+- **Held back:** the review also suggested task durations and real recurrence logic for `frequency`. I did not add these yet, since they go beyond the core requirements and would grow the design before the basics were verified.
+- **Changed:** `check_conflicts` ignores completed tasks, a choice the AI made on its own. I kept it, but I checked that it behaves the way I want.
+- **Verification:** I ran `main.py` with two pets and compared the printed schedule to what I expected (sorted order, per-pet filtering, one conflict found, then none after marking a task done). I also added pytest tests for `mark_complete()` and `Pet.add_task()` and confirmed they pass.
 
 ---
 
