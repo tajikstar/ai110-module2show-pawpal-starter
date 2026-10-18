@@ -33,6 +33,62 @@ The logic layer lives in `pawpal_system.py` and has four classes:
 
 Data flows `Owner -> Pet -> Task`, and the `Scheduler` sits on top, reading from the `Owner`. `main.py` is a terminal demo, and `tests/test_pawpal.py` holds the first automated tests (`python -m pytest`).
 
+## Features
+
+- **Multi-pet management:** an owner can have any number of pets, each with its own tasks (`Owner.add_pet()`, `Pet.add_task()`).
+- **Sorting by time:** tasks from all pets are ordered by date, then `HH:MM` time (`Scheduler.sort_by_time()`).
+- **Filtering:** by pet name, by completion status, or both (`Scheduler.filter_tasks()`).
+- **Conflict warnings:** tasks at the same date and time are flagged, for one pet or across pets, as readable warnings instead of errors (`Scheduler.get_conflict_warnings()`).
+- **Daily and weekly recurrence:** completing a recurring task creates the next occurrence, one or seven days later (`Scheduler.mark_task_complete()`).
+- **Streamlit UI:** forms for adding pets and tasks, a sorted and filterable schedule, summary counts, conflict warnings and a "Mark done" button. State is kept in `st.session_state`.
+- **Tests:** 17 automated tests (`python -m pytest`).
+
+## Architecture
+
+The final UML is in [`diagrams/uml_final.mmd`](diagrams/uml_final.mmd) (the original draft is `diagrams/uml.mmd`).
+
+```mermaid
+classDiagram
+    class Task {
+        +str description
+        +str due_time
+        +bool is_complete
+        +str frequency
+        +str pet_name
+        +date due_date
+        +mark_complete() Task
+        +update_time(new_time)
+    }
+    class Pet {
+        +str name
+        +str species
+        +List~Task~ tasks
+        +add_task(task)
+        +get_pending_tasks() List~Task~
+    }
+    class Owner {
+        +str name
+        +List~Pet~ pets
+        +add_pet(pet)
+        +get_all_tasks() List~Task~
+    }
+    class Scheduler {
+        +Owner owner
+        +sort_by_time(tasks) List~Task~
+        +filter_tasks(pet_name, is_complete) List~Task~
+        +filter_by_pet(pet_name) List~Task~
+        +check_conflicts() List~Tuple~
+        +get_conflict_warnings() List~str~
+        +mark_task_complete(task) Task
+    }
+
+    Owner "1" *-- "*" Pet : owns
+    Pet "1" *-- "*" Task : has
+    Scheduler "1" --> "1" Owner : reads via get_all_tasks()
+    Task ..> Task : mark_complete() returns next occurrence (daily/weekly)
+    Scheduler ..> Pet : mark_task_complete() adds next task to owning pet
+```
+
 ## Getting started
 
 ### Setup
@@ -167,32 +223,93 @@ tests/test_pawpal.py::test_recurring_task_rolls_over_year_end PASSED     [100%]
 
 ## 📸 Demo Walkthrough
 
-Run `streamlit run app.py`, then follow along:
+### What the app lets you do
 
-1. **Enter the owner and add a pet.** Type the owner's name, then fill in the "Add a Pet" form (name and species).
+Run `streamlit run app.py`. The page has four parts, top to bottom:
 
-   ![Add a pet form](screenshots/1-add-pet-form.png)
+1. **Owner:** set the owner's name.
+2. **Add a Pet:** enter a name and species. Blank or duplicate names are rejected.
+3. **Add a Task:** choose a pet, then enter a description, due time and frequency (once, daily or weekly).
+4. **Today's Schedule:** shows counts of pets, pending and completed tasks, conflict warnings, filters for pet and status, and the sorted task list with a "Mark done" button on each pending task.
 
-2. **Confirm the pet was saved.** Submitting calls `Owner.add_pet()`. The pet stays in `st.session_state`, so it is still there after the page reruns.
+### Example workflow
 
-   ![Pet added](screenshots/2-pet-added.png)
+1. Add a pet, for example `Luna` (cat).
+2. Add a task for Luna: `morning walk` at `10:00`, daily.
+3. Add a second task for Luna at the same time: `breakfast` at `10:00`.
+4. Look at **Today's Schedule**. Both tasks are listed in time order and a yellow warning reports the 10:00 conflict.
+5. Click **Mark done** on `morning walk`. It turns into a green "done" entry, and a new `morning walk` appears for tomorrow.
+6. Use the **Show tasks for** and **Status** filters to narrow the list.
 
-3. **Add a task.** Choose the pet, a description, a due time and a frequency (once, daily or weekly).
+### Scheduler behaviors shown
 
-   ![Add a task form](screenshots/3-add-task-form.png)
+- **Sorting:** the schedule is always in date and time order, no matter the order tasks were added.
+- **Conflict warnings:** two tasks at the same date and time produce a warning that names the pets and tasks, and the app keeps working.
+- **Recurrence:** completing a daily or weekly task automatically schedules the next one.
+- **Filtering:** by pet and by status, using the same `Scheduler` methods the CLI demo uses.
 
-4. **Confirm the task was saved.** Submitting calls `Pet.add_task()`, and the form clears for the next entry.
+### Sample CLI output
 
-   ![Task added](screenshots/4-task-added.png)
+Output of `python main.py` (tasks are added out of order on purpose):
 
-5. **View the schedule.** "Today's Schedule" lists tasks sorted by date and time, can be filtered by pet, and shows a warning if two tasks share a time.
+```
+All tasks as added (unsorted)
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  18:30  Mochi    Evening walk        daily   pending
+2026-10-18  08:00  Mochi    Morning walk        daily   pending
+2026-10-18  12:15  Luna     Medication          weekly  pending
+2026-10-18  08:00  Luna     Breakfast           once    pending
+2026-10-18  08:00  Luna     Grooming            once    pending
 
-   ![Schedule](screenshots/5-schedule.png)
+Sorted by time
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  08:00  Mochi    Morning walk        daily   pending
+2026-10-18  08:00  Luna     Breakfast           once    pending
+2026-10-18  08:00  Luna     Grooming            once    pending
+2026-10-18  12:15  Luna     Medication          weekly  pending
+2026-10-18  18:30  Mochi    Evening walk        daily   pending
 
-6. **Complete a recurring task.** Clicking "Mark done" on a daily task marks it done and automatically adds the next day's occurrence.
+Filter: Luna only
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  12:15  Luna     Medication          weekly  pending
+2026-10-18  08:00  Luna     Breakfast           once    pending
+2026-10-18  08:00  Luna     Grooming            once    pending
 
-   ![Recurring task completed](screenshots/6-recurring-task.png)
+Conflict warnings
+----------------------------------------------------------
+Conflict on 2026-10-18 at 08:00 between Mochi and Luna: 'Morning walk' and 'Breakfast'
+Conflict on 2026-10-18 at 08:00 between Mochi and Luna: 'Morning walk' and 'Grooming'
+Conflict on 2026-10-18 at 08:00 for Luna: 'Breakfast' and 'Grooming'
 
-7. **See a conflict warning.** Two tasks at the same date and time (here `breakfast` and `Shower` at 11:00) trigger a warning from `Scheduler.get_conflict_warnings()`. The app keeps running and nothing is blocked.
+Completing Mochi's daily morning walk and Luna's weekly medication...
+  Morning walk: next occurrence on 2026-10-19
+  Medication: next occurrence on 2026-10-25
 
-   ![Conflict warning](screenshots/7-conflict-warning.png)
+Filter: pending only
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  08:00  Luna     Breakfast           once    pending
+2026-10-18  08:00  Luna     Grooming            once    pending
+2026-10-18  18:30  Mochi    Evening walk        daily   pending
+2026-10-19  08:00  Mochi    Morning walk        daily   pending
+2026-10-25  12:15  Luna     Medication          weekly  pending
+
+Filter: completed only
+----------------------------------------------------------
+Date        Time   Pet      Task                Repeats Status
+2026-10-18  08:00  Mochi    Morning walk        daily   done
+2026-10-18  12:15  Luna     Medication          weekly  done
+```
+
+### Screenshots
+
+![Add a pet form](screenshots/1-add-pet-form.png)
+![Pet added](screenshots/2-pet-added.png)
+![Add a task form](screenshots/3-add-task-form.png)
+![Task added](screenshots/4-task-added.png)
+![Schedule](screenshots/5-schedule.png)
+![Recurring task completed](screenshots/6-recurring-task.png)
+![Conflict warning](screenshots/7-conflict-warning.png)

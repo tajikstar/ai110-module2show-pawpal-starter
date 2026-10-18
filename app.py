@@ -58,16 +58,36 @@ st.divider()
 
 st.subheader("Today's Schedule")
 scheduler = Scheduler(owner)
-tasks = scheduler.sort_by_time()
+all_tasks = owner.get_all_tasks()
 
-if tasks:
-    filter_choice = st.selectbox("Show tasks for", ["All pets"] + [p.name for p in owner.pets])
-    if filter_choice != "All pets":
-        shown = scheduler.sort_by_time(scheduler.filter_by_pet(filter_choice))
+if all_tasks:
+    pending = len(scheduler.filter_tasks(is_complete=False))
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Pets", len(owner.pets))
+    m2.metric("Pending tasks", pending)
+    m3.metric("Completed", len(all_tasks) - pending)
+
+    # Conflicts come first: they are the thing the owner needs to act on.
+    warnings = scheduler.get_conflict_warnings()
+    if warnings:
+        st.warning(f"{len(warnings)} scheduling conflict(s) found. Move one task in each pair to a different time.")
+        for warning in warnings:
+            st.warning(warning, icon="⚠️")
     else:
-        shown = tasks
+        st.success("No scheduling conflicts. You're all set!")
 
-    for i, task in enumerate(shown):
+    f1, f2 = st.columns(2)
+    pet_choice = f1.selectbox("Show tasks for", ["All pets"] + [p.name for p in owner.pets])
+    status_choice = f2.selectbox("Status", ["All", "Pending", "Completed"])
+    shown = scheduler.filter_tasks(
+        pet_name=None if pet_choice == "All pets" else pet_choice,
+        is_complete={"All": None, "Pending": False, "Completed": True}[status_choice],
+    )
+    shown = scheduler.sort_by_time(shown)
+
+    if not shown:
+        st.info("No tasks match these filters.")
+    for task in shown:
         cols = st.columns([2, 2, 3, 2])
         cols[0].write(f"{task.due_date} {task.due_time}")
         cols[1].write(task.pet_name)
@@ -77,10 +97,9 @@ if tasks:
         else:
             # Same pet name + description + time could repeat, so key by object id.
             if cols[3].button("Mark done", key=f"done_{id(task)}"):
-                scheduler.mark_task_complete(task)  # also schedules the next one if it recurs
+                next_task = scheduler.mark_task_complete(task)  # recurring tasks reschedule themselves
+                if next_task is not None:
+                    st.toast(f"Next '{task.description}' scheduled for {next_task.due_date}.")
                 st.rerun()
-
-    for warning in scheduler.get_conflict_warnings():
-        st.warning(warning)
 else:
     st.info("No tasks yet. Add one above.")
