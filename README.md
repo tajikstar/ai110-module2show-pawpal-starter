@@ -151,12 +151,28 @@ tests/test_pawpal.py::test_conflict_ignores_other_dates_and_completed_tasks PASS
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+Run `streamlit run app.py`, then follow along:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. **Enter the owner and add a pet.** Type the owner's name, then fill in the "Add a Pet" form (name and species).
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+   ![Add a pet form](screenshots/1-add-pet-form.png)
+
+2. **Confirm the pet was saved.** Submitting calls `Owner.add_pet()`. The pet stays in `st.session_state`, so it is still there after the page reruns.
+
+   ![Pet added](screenshots/2-pet-added.png)
+
+3. **Add a task.** Choose the pet, a description, a due time and a frequency (once, daily or weekly).
+
+   ![Add a task form](screenshots/3-add-task-form.png)
+
+4. **Confirm the task was saved.** Submitting calls `Pet.add_task()`, and the form clears for the next entry.
+
+   ![Task added](screenshots/4-task-added.png)
+
+5. **View the schedule.** "Today's Schedule" lists tasks sorted by date and time, can be filtered by pet, and shows a warning if two tasks share a time.
+
+   ![Schedule](screenshots/5-schedule.png)
+
+6. **Complete a recurring task.** Clicking "Mark done" on a daily task marks it done and automatically adds the next day's occurrence.
+
+   ![Recurring task completed](screenshots/6-recurring-task.png)
