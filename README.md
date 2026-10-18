@@ -176,3 +176,7 @@ Run `streamlit run app.py`, then follow along:
 6. **Complete a recurring task.** Clicking "Mark done" on a daily task marks it done and automatically adds the next day's occurrence.
 
    ![Recurring task completed](screenshots/6-recurring-task.png)
+
+7. **See a conflict warning.** Two tasks at the same date and time (here `breakfast` and `Shower` at 11:00) trigger a warning from `Scheduler.get_conflict_warnings()`. The app keeps running and nothing is blocked.
+
+   ![Conflict warning](screenshots/7-conflict-warning.png)
