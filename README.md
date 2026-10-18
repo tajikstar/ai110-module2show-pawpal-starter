@@ -109,62 +109,6 @@ pip install -r requirements.txt
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
 
-## 🖥️ Sample Output
-
-Output of `python main.py`, which adds tasks out of order, then sorts, filters, flags conflicts and completes recurring tasks:
-
-```
-All tasks as added (unsorted)
-----------------------------------------------------------
-Date        Time   Pet      Task                Repeats Status
-2026-10-18  18:30  Mochi    Evening walk        daily   pending
-2026-10-18  08:00  Mochi    Morning walk        daily   pending
-2026-10-18  12:15  Luna     Medication          weekly  pending
-2026-10-18  08:00  Luna     Breakfast           once    pending
-2026-10-18  08:00  Luna     Grooming            once    pending
-
-Sorted by time
-----------------------------------------------------------
-Date        Time   Pet      Task                Repeats Status
-2026-10-18  08:00  Mochi    Morning walk        daily   pending
-2026-10-18  08:00  Luna     Breakfast           once    pending
-2026-10-18  08:00  Luna     Grooming            once    pending
-2026-10-18  12:15  Luna     Medication          weekly  pending
-2026-10-18  18:30  Mochi    Evening walk        daily   pending
-
-Filter: Luna only
-----------------------------------------------------------
-Date        Time   Pet      Task                Repeats Status
-2026-10-18  12:15  Luna     Medication          weekly  pending
-2026-10-18  08:00  Luna     Breakfast           once    pending
-2026-10-18  08:00  Luna     Grooming            once    pending
-
-Conflict warnings
-----------------------------------------------------------
-Conflict on 2026-10-18 at 08:00 between Mochi and Luna: 'Morning walk' and 'Breakfast'
-Conflict on 2026-10-18 at 08:00 between Mochi and Luna: 'Morning walk' and 'Grooming'
-Conflict on 2026-10-18 at 08:00 for Luna: 'Breakfast' and 'Grooming'
-
-Completing Mochi's daily morning walk and Luna's weekly medication...
-  Morning walk: next occurrence on 2026-10-19
-  Medication: next occurrence on 2026-10-25
-
-Filter: pending only
-----------------------------------------------------------
-Date        Time   Pet      Task                Repeats Status
-2026-10-18  08:00  Luna     Breakfast           once    pending
-2026-10-18  08:00  Luna     Grooming            once    pending
-2026-10-18  18:30  Mochi    Evening walk        daily   pending
-2026-10-19  08:00  Mochi    Morning walk        daily   pending
-2026-10-25  12:15  Luna     Medication          weekly  pending
-
-Filter: completed only
-----------------------------------------------------------
-Date        Time   Pet      Task                Repeats Status
-2026-10-18  08:00  Mochi    Morning walk        daily   done
-2026-10-18  12:15  Luna     Medication          weekly  done
-```
-
 ## 🧪 Testing PawPal+
 
 ```bash
